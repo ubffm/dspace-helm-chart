@@ -1,0 +1,32 @@
+{{/*
+Copyright 2025-, UB JCS, Goethe University Frankfurt am Main
+
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+SPDX-License-Identifier: MPL-2.0
+*/}}
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-frontend-configmap
+  namespace: {{ .Values.namespace }}
+  labels:
+  {{- include "dspace.commonLabels" . | nindent 4 }}
+  {{- include "dspace.componentLabel" "frontend" | nindent 4 }}
+data:
+  DSPACE_REST_HOST: "{{ .Values.host }}"
+  DSPACE_REST_SSRBASEURL: "http://{{ include "dspace.backendServiceInternalDomain" . }}:8080{{ .Values.backendPath }}"
+  DSPACE_REST_NAMESPACE: "{{ .Values.backendPath }}"
+  DSPACE_REST_PORT: {{ if eq .Values.hostProtocol "https" }}'443'{{ else }}'80'{{ end }}
+  DSPACE_REST_SSL: {{ if eq .Values.hostProtocol "https" }}'true'{{ else }}'false'{{ end }}
+  DSPACE_UI_BASEURL: "{{ include "dspace.fullURL" . }}"
+  DSPACE_UI_HOST: "{{ .Values.frontendUIHost }}"
+  DSPACE_UI_NAMESPACE: "{{ .Values.frontendUINamespace }}"
+  DSPACE_UI_PORT: '4000'
+  DSPACE_UI_SSL: 'false'
+  {{- range $key, $val := .Values.frontendAdditionalEnvVariables }}
+  {{ $key }}: {{ $val | quote }}
+  {{- end -}}

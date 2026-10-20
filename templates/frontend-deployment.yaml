@@ -1,0 +1,51 @@
+{{/*
+Copyright 2025-, UB JCS, Goethe University Frankfurt am Main
+
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+SPDX-License-Identifier: MPL-2.0
+*/}}
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-frontend
+  namespace: {{ .Values.namespace }}
+  labels:
+  {{- include "dspace.commonLabels" . | nindent 4 }}
+  {{- include "dspace.componentLabel" "frontend" | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-frontend
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-frontend
+    spec:
+      containers:
+        - name: container-frontend
+          image: {{ .Values.frontendImageName }}:{{ .Values.frontendImageVersion }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 4000
+              name: dspace-frontend
+              protocol: TCP
+          env:
+            - name: "HOST"
+              value: "0.0.0.0"
+          envFrom:
+            - configMapRef:
+                name: {{ .Release.Name }}-frontend-configmap
+                optional: false
+          {{- if .Values.frontendRunInDevelopmentMode }}
+          command: [ "/bin/sh", "-c" ]
+          args:
+            - >
+              npm run serve -- --host 0.0.0.0 --disable-host-check
+          {{- end }}
+      {{- include "dspace.imagePullSecret" . | nindent 6 -}}
+      {{- include "dspace.clusterTolerations" . | nindent 6 -}}

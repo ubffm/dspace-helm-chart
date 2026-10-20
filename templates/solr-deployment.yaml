@@ -1,0 +1,56 @@
+{{/*
+Copyright 2025-, UB JCS, Goethe University Frankfurt am Main
+
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+SPDX-License-Identifier: MPL-2.0
+*/}}
+{{- if not .Values.solrUrl }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-solr
+  namespace: {{ .Values.namespace }}
+  labels:
+  {{- include "dspace.commonLabels" . | nindent 4 }}
+  {{- include "dspace.componentLabel" "solr" | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-solr
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-solr
+    spec:
+      containers:
+        - image: {{ .Values.solrImageName }}:{{ .Values.solrImageVersion }}
+          name: container-solr
+          ports:
+            - containerPort: 8983
+              name: solr-port
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /var/solr/data
+              name: solr-volume
+      {{- if .Values.solrInitCommands }}
+      initContainers:
+        - image: {{ .Values.solrImageName }}:{{ .Values.solrImageVersion }}
+          name: init-solr-cores
+          volumeMounts:
+            - mountPath: /var/solr/data
+              name: solr-volume
+          securityContext:
+            runAsUser: 0
+          command: ["/bin/bash", "-c", {{ join " && " .Values.solrInitCommands | quote }}]
+      {{- end }}
+      volumes:
+        - name: solr-volume
+          persistentVolumeClaim:
+            claimName: {{ default ( print .Release.Name "-solr") .Values.solrExistingPvcName }}
+      {{- include "dspace.imagePullSecret" . | nindent 6 -}}
+      {{- include "dspace.clusterTolerations" . | nindent 6 -}}
+{{- end -}}

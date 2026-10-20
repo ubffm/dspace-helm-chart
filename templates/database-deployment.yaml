@@ -1,0 +1,57 @@
+{{/*
+Copyright 2025-, UB JCS, Goethe University Frankfurt am Main
+
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+SPDX-License-Identifier: MPL-2.0
+*/}}
+
+{{- if not .Values.dbUrl }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-database
+  namespace: {{ .Values.namespace }}
+  labels:
+  {{- include "dspace.commonLabels" . | nindent 4 }}
+  {{- include "dspace.componentLabel" "database" | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-database
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-database
+    spec:
+      containers:
+        - name: container-database
+          image: {{ .Values.dbImageName }}:{{ .Values.dbImageVersion }}
+          env:
+            - name: POSTGRES_DB
+              value: {{ .Values.dbDatabaseName }}
+            - name: PGDATA
+              value: {{ .Values.dbPgdataPath }}
+            - name: POSTGRES_USER
+              value: {{ .Values.dbUsername }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.backendConfigSecret }}
+                  key: db__P__password
+          ports:
+            - containerPort: 5432
+              name: db-port
+              protocol: TCP
+          volumeMounts:
+            - name: database-volume
+              mountPath: /var/lib/postgresql
+      volumes:
+        - name: database-volume
+          persistentVolumeClaim:
+            claimName: {{ default (print .Release.Name "-database") .Values.dbExistingPvcName }}
+      {{- include "dspace.clusterTolerations" . | nindent 6 }}
+{{- end -}}

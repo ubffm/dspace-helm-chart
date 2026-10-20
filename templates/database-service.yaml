@@ -1,0 +1,28 @@
+{{/*
+Copyright 2025-, UB JCS, Goethe University Frankfurt am Main
+
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+SPDX-License-Identifier: MPL-2.0
+*/}}
+{{- if not .Values.dbUrl }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-database
+  namespace: {{ .Values.namespace }}
+  labels:
+  {{- include "dspace.commonLabels" . | nindent 4 }}
+  {{- include "dspace.componentLabel" "database" | nindent 4 }}
+spec:
+  ports:
+    - name: dspace-database-port
+      port: 5432
+      protocol: TCP
+      targetPort: 5432
+  selector:
+    app: {{ .Release.Name }}-database
+  type: ClusterIP
+{{- end -}}

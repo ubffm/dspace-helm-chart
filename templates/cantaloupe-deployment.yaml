@@ -1,0 +1,47 @@
+{{/*
+Copyright 2025-, UB JCS, Goethe University Frankfurt am Main
+
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+SPDX-License-Identifier: MPL-2.0
+*/}}
+
+{{- if .Values.iiifEnabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-iiif
+  namespace: {{ .Values.namespace }}
+  labels:
+  {{- include "dspace.commonLabels" . | nindent 4 }}
+  {{- include "dspace.componentLabel" "iiif" | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-iiif
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-iiif
+    spec:
+      containers:
+        - name: container-iiif
+          image: {{ .Values.iiifServerImageName }}:{{ .Values.iiifServerImageVersion }}
+          env:
+            - name: CANTALOUPE_ENDPOINT_ADMIN_ENABLED
+              value: "false"
+            - name: CANTALOUPE_SOURCE_STATIC
+              value: "HttpSource"
+            - name: CANTALOUPE_HTTPSOURCE_BASICLOOKUPSTRATEGY_URL_PREFIX
+              value: "http://{{ include "dspace.backendServiceInternalDomain" . }}:8080/server/api/core/bitstreams/"
+            - name: CANTALOUPE_HTTPSOURCE_BASICLOOKUPSTRATEGY_URL_SUFFIX
+              value: "/content"
+          ports:
+            - containerPort: 8182
+              name: iiif-port
+              protocol: TCP
+      {{- include "dspace.clusterTolerations" . | nindent 6 }}
+{{ end -}}

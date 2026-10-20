@@ -1,0 +1,28 @@
+{{/*
+Copyright 2025-, UB JCS, Goethe University Frankfurt am Main
+
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+SPDX-License-Identifier: MPL-2.0
+*/}}
+{{- if not .Values.solrUrl }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-solr
+  namespace: {{ .Values.namespace }}
+  labels:
+  {{- include "dspace.commonLabels" . | nindent 4 }}
+  {{- include "dspace.componentLabel" "solr" | nindent 4 }}
+spec:
+  ports:
+    - name: solr-port
+      port: 8983
+      protocol: TCP
+      targetPort: 8983
+  selector:
+    app: {{ .Release.Name }}-solr
+  type: ClusterIP
+{{- end -}}

@@ -1,0 +1,38 @@
+{{/*
+Copyright 2025-, UB JCS, Goethe University Frankfurt am Main
+
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+SPDX-License-Identifier: MPL-2.0
+*/}}
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-backend-configmap
+  namespace: {{ .Values.namespace }}
+  labels:
+  {{- include "dspace.commonLabels" . | nindent 4 }}
+  {{- include "dspace.componentLabel" "backend" | nindent 4}}
+data:
+  LOGGING_CONFIG: "/dspace/config/log4j2-container.xml"
+  solr__P__server: "{{ include "dspace.solrConnectionString" . }}"
+  {{- if .Values.solrMulticorePrefix }}
+  solr__P__multicorePrefix: "{{ .Values.solrMulticorePrefix }}"
+  {{- end }}
+  db__P__url: "{{ include "dspace.databaseConnectionString" . }}"
+  db__P__username: "{{ .Values.dbUsername }}"
+  dspace__P__name: "{{ .Values.backendInstanceName }}"
+  dspace__P__server__P__url: "{{ include "dspace.fullURL" . }}{{ .Values.backendPath }}"
+  dspace__P__server__P__ssr__P__url: "http://{{ include "dspace.backendServiceInternalDomain" . }}:8080{{ .Values.backendPath }}"
+  dspace__P__ui__P__url: "{{ include "dspace.fullURL" . }}"
+  {{- if .Values.iiifEnabled}}
+  iiif__P__enabled: "true"
+  iiif__P__image__P__server: "{{ include "dspace.fullURL" . }}/iiif/2/"
+  event__P__dispatcher__P__default__P__consumers: "versioning, discovery, eperson, iiif"
+  {{- end}}
+  {{- range $key, $val := .Values.backendAdditionalEnvVariables }}
+  {{ $key }}: {{ $val | quote }}
+  {{- end -}}

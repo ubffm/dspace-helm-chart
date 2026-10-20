@@ -1,0 +1,63 @@
+{{/*
+Copyright 2025-, UB JCS, Goethe University Frankfurt am Main
+
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+SPDX-License-Identifier: MPL-2.0
+*/}}
+
+{{- range .Values.cronJobs }}
+{{- if .active }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  #name: {{ $.Release.Name }}-cronjob-{{ .name }}
+  name: {{ (printf "%s-cronjob-%s" $.Release.Name .name) | trunc 52 }}
+  namespace: {{ $.Values.namespace }}
+  labels:
+  {{- include "dspace.commonLabels" $ | nindent 4 }}
+  {{- include "dspace.componentLabel" "backend" | nindent 4 }}
+spec:
+  schedule: {{ .schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: container-cronjob-{{ .name }}
+              image: {{ $.Values.backendImageName }}:{{ $.Values.backendImageVersion }}
+              imagePullPolicy: IfNotPresent
+              command: {{- toYaml .command | nindent 16 }}
+              {{- with .args }}
+              args:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+              volumeMounts:
+                {{- range $.Values.backendAssetstores }}
+                - mountPath: {{ .mountPath }}
+                  name: {{ .volumeName }}
+                {{- end }}
+              envFrom:
+                - secretRef:
+                    name: {{ $.Values.backendConfigSecret }}
+                    optional: false
+                - configMapRef:
+                    name: {{ $.Release.Name }}-backend-configmap
+                    optional: false
+          volumes:
+            {{- range $.Values.backendAssetstores }}
+            - name: {{ .volumeName }}
+              persistentVolumeClaim:
+                claimName: {{ default (print $.Release.Name "-backend-" .volumeName ) .existingPvcName }}
+            {{- end }}
+          restartPolicy: OnFailure
+          {{- include "dspace.clusterTolerations" $  | nindent 10 -}}
+          {{- include "dspace.imagePullSecret" $ | nindent 10 -}}
+{{- end -}}
+{{- end -}}

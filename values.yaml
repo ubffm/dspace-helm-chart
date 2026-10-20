@@ -1,0 +1,162 @@
+# General Configuration
+namespace: "dspace"
+host: "dspace.example"
+hostProtocol: "http"
+imagePullSecret: null
+tolerationKey: null
+
+# Database
+dbUrl: null # jdbc:postgresql://your-postgres.local:5432/dspace_test
+dbUsername: "dspace_test"
+dbImageName: docker.io/postgres
+dbImageVersion: 17
+dbDatabaseName: dspace
+dbPgdataPath: "/var/lib/postgresql/17/docker"
+dbExistingPvcName: null
+dbPvcStorageClass: "standard"
+dbPvcSize: "2Gi"
+
+# Solr
+solrUrl: null
+solrMulticorePrefix: null
+solrImageName: "dspace/dspace-solr"
+solrImageVersion: "dspace-10_x"
+solrExistingPvcName: null
+solrPvcStorageClass: "standard"
+solrPvcSize: "2Gi"
+solrInitCommands:
+  - init-var-solr
+  - precreate-core authority /opt/solr/server/solr/configsets/authority
+  - cp -r /opt/solr/server/solr/configsets/authority/* authority
+  - precreate-core oai /opt/solr/server/solr/configsets/oai
+  - cp -r /opt/solr/server/solr/configsets/oai/* oai
+  - precreate-core search /opt/solr/server/solr/configsets/search
+  - cp -r /opt/solr/server/solr/configsets/search/* search
+  - precreate-core statistics /opt/solr/server/solr/configsets/statistics
+  - cp -r /opt/solr/server/solr/configsets/statistics/* statistics
+  - precreate-core qaevent /opt/solr/server/solr/configsets/qaevent
+  - cp -r /opt/solr/server/solr/configsets/qaevent/* qaevent
+  - precreate-core suggestion /opt/solr/server/solr/configsets/suggestion
+  - cp -r /opt/solr/server/solr/configsets/suggestion/* suggestion
+  - precreate-core audit /opt/solr/server/solr/configsets/audit
+  - cp -r /opt/solr/server/solr/configsets/audit/* audit
+  - chown -R solr:solr /var/solr
+
+# DSpace backend
+backendImageName: "dspace/dspace"
+backendImageVersion: "dspace-10_x"
+backendConfigSecret: "dspace-backend-secret"
+backendInstanceName: "UB Template DSpace"
+backendPath: "/server"
+backendAssetstores:
+  - volumeName: "assetstore-default"
+    mountPath: "/dspace/assetstore"
+    storageClass: "standard"
+    storageSize: "5Gi"
+    existingPvcName: null
+backendInitCommands:
+  - bin/dspace database migrate
+backendAdditionalEnvVariables: null
+
+# DSpace frontend
+frontendImageName: "dspace/dspace-angular"
+frontendImageVersion: "dspace-10_x"
+frontendUIHost: "0.0.0.0"
+frontendUINamespace: "/"
+frontendRunInDevelopmentMode: true
+frontendAdditionalEnvVariables: null
+
+
+# Proxy (apache mod_proxy)
+proxyImageName: "docker.io/httpd"
+proxyImageVersion: "2.4"
+proxyIngressClass: "nginx"
+
+# Cantaloupe (IIIF image server)
+iiifEnabled: false
+#iiifServerImageName: "islandora/cantaloupe"
+#iiifServerImageVersion: "7"
+
+
+# DSpace maintenance cronjobs
+#
+# For convenience, the list of cron jobs from the DSpace
+# documentation has been adapted. However, by default,
+# all cronjobs are DISABLED, even the required ones.
+# Before enabling anything, please check in the docs
+# what these actually do and which parameters work for you.
+# Please also check the actual schedule and adapt to your needs.
+# Then enable the ones you want to use by setting `active` to true.
+#
+# cf. https://wiki.lyrasis.org/spaces/DSDOC10x/pages/408945747/Scheduled+Tasks+via+Cron#ScheduledTasksviaCron-RecommendedCronSettings
+#
+cronJobs:
+  # Hourly
+  - name: "doi-organizer"
+    schedule: "0 4,12,20 * * *"
+    active: false
+    command: ["sh", "-c" ]
+    args: ["/dspace/bin/dspace doi-organiser -u -q ; /dspace/bin/dspace doi-organiser -s -q ; /dspace/bin/dspace doi-organiser -r -q ; /dspace/bin/dspace doi-organiser -d -q"]
+  # Daily
+  - name: "oai-import"
+    schedule: "15 0 * * *"
+    active: false
+    command: ["sh", "-c" ]
+    args: ["/dspace/bin/dspace oai import"] 
+  - name: "index-discovery"
+    schedule: "15 0 * * *"
+    active: false
+    command: ["sh", "-c" ]
+    args: ["/dspace/bin/dspace index-discovery"] 
+  - name: "index-authority"
+    schedule: "45 0 * * *"
+    active: false
+    command: ["sh", "-c" ]
+    args: ["/dspace/bin/dspace index-authority"] 
+  - name: "stats-util-clean-spiders"
+    schedule: "0 1 * * *"
+    active: false
+    command: ["sh", "-c" ]
+    args: ["/dspace/bin/dspace stats-util -f"] 
+  - name: "subscription-send-daily"
+    schedule: "0 2 * * *"
+    active: false
+    command: ["sh", "-c" ]
+    args: ["/dspace/bin/dspace subscription-send -f D"] 
+  - name: "filter-media"
+    schedule: "0 3 * * *"
+    active: false
+    command: ["sh", "-c" ]
+    args: ["/dspace/bin/dspace filter-media"] 
+  # Weekly
+  - name: "subscription-send-weekly"
+    schedule: "0 2 * * 0"
+    active: false
+    command: ["sh", "-c" ]
+    args: ["/dspace/bin/dspace subscription-send -f W"] 
+  - name: "checksum-checker-all"
+    schedule: "0 4 * * 0"
+    active: true
+    command: ["sh", "-c" ]
+    args: ["/dspace/bin/dspace checker -l -p"] 
+  - name: "checksum-checker-quick"
+    schedule: "0 4 * * 0"
+    active: false
+    command: ["sh", "-c" ]
+    args: ["/dspace/bin/dspace checker -l -p"] 
+  - name: "checksum-checker-mailer"
+    schedule: "0 5 * * 0"
+    active: false
+    command: ["sh", "-c" ]
+    args: ["/dspace/bin/dspace checker-emailer"] 
+  # Monthly
+  - name: "subscription-send-monthly"
+    schedule: "0 2 1 * *"
+    active: false
+    command: ["sh", "-c" ]
+    args: ["/dspace/bin/dspace subscription-send -f M"] 
+  - name: "cleanup"
+    schedule: "0 1 1 * *"
+    active: false
+    command: ["sh", "-c" ]
+    args: ["/dspace/bin/dspace cleanup"]

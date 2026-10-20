@@ -1,0 +1,76 @@
+{{/*
+Copyright 2025-, UB JCS, Goethe University Frankfurt am Main
+
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+SPDX-License-Identifier: MPL-2.0
+*/}}
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-backend
+  namespace: {{ .Values.namespace }}
+  labels:
+  {{- include "dspace.commonLabels" . | nindent 4 }}
+  {{- include "dspace.componentLabel" "backend" | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-backend
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-backend
+    spec:
+      containers:
+        - name: container-backend
+          image: {{ .Values.backendImageName }}:{{ .Values.backendImageVersion }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: tomcat-port
+              protocol: TCP
+          volumeMounts:
+            {{- range .Values.backendAssetstores }}
+            - mountPath: {{ .mountPath }}
+              name: {{ .volumeName }}
+            {{- end }}
+          envFrom:
+            - secretRef:
+                name: {{ .Values.backendConfigSecret }}
+                optional: false
+            - configMapRef:
+                name: {{ .Release.Name }}-backend-configmap
+                optional: false
+      initContainers:
+        - name: init-prepare-environment
+          image: {{ .Values.backendImageName }}:{{ .Values.backendImageVersion }}
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - secretRef:
+                name: {{ .Values.backendConfigSecret }}
+                optional: false
+            - configMapRef:
+                name: {{ .Release.Name }}-backend-configmap
+                optional: false
+          {{- if .Values.backendInjectedFiles }}
+          volumeMounts:
+            {{- range .Values.backendInjectedFiles }}
+            - mountPath: {{ .path }}/{{ .filename }}
+              name: {{ $.Release.Name }}-backend-injected-files-configmap
+              subPath: {{ .filename }}
+            {{- end }}
+          {{- end }}
+          command: ["/bin/bash", "-c", {{ join " && " .Values.backendInitCommands | quote }}]
+      volumes:
+        {{- range .Values.backendAssetstores }}
+        - name: {{ .volumeName }}
+          persistentVolumeClaim:
+            claimName: {{ default (print $.Release.Name "-backend-" .volumeName ) .existingPvcName }}
+        {{- end -}}
+      {{- include "dspace.imagePullSecret" . | nindent 6 -}}
+      {{- include "dspace.clusterTolerations" . | nindent 6 -}}

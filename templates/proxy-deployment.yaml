@@ -1,0 +1,46 @@
+{{/*
+Copyright 2025-, UB JCS, Goethe University Frankfurt am Main
+
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+SPDX-License-Identifier: MPL-2.0
+*/}}
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-proxy
+  namespace: {{ .Values.namespace }}
+  labels:
+  {{- include "dspace.commonLabels" . | nindent 4 }}
+  {{- include "dspace.componentLabel" "proxy" | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-proxy
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-proxy
+    spec:
+      containers:
+        - name: proxy-container
+          image: {{ .Values.proxyImageName }}:{{ .Values.proxyImageVersion }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+              name: httpd-port
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /usr/local/apache2/conf/httpd.conf
+              name: {{ .Release.Name }}-proxy-volume
+              subPath: httpd.conf
+      volumes:
+        - configMap:
+            defaultMode: 420
+            name: {{ .Release.Name }}-proxy-configmap
+          name: {{ .Release.Name }}-proxy-volume
+      {{- include "dspace.clusterTolerations" . | nindent 6 -}}

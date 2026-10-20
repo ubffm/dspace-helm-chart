@@ -1,0 +1,29 @@
+{{/*
+Copyright 2025-, UB JCS, Goethe University Frankfurt am Main
+
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+SPDX-License-Identifier: MPL-2.0
+*/}}
+
+{{- if .Values.iiifEnabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-iiif
+  namespace: {{ .Values.namespace }}
+  labels:
+  {{- include "dspace.commonLabels" . | nindent 4 }}
+  {{- include "dspace.componentLabel" "iiif" | nindent 4 }}
+spec:
+  ports:
+    - name: iiif-port
+      port: 8182
+      protocol: TCP
+      targetPort: 8182
+  selector:
+    app: {{ .Release.Name }}-iiif
+  type: ClusterIP
+{{- end -}}
