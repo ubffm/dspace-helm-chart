@@ -52,19 +52,20 @@ To later access the app, we need to install the
 ```bash
 minikube addons enable ingress
 ```
-Installing `ingress-dns` is not necessary.
 
 
 ### Setting Up the Namespace
 
-A few resources need to be set up manually, as they cannot be managed by helm 
-(especially the secrets). For this reason, we manually create a namespace.
+A few resources need to be set up manually, as we prefer to not manage them with helm, 
+especially the secrets. For this reason, we manually create a namespace.
 
 Either use the minikube dashboard for the following tasks or use `kubectl`.
 
 First create the namespace `dspace` running
 
-> kubectl create namespace dspace
+```bash
+kubectl create namespace dspace
+```
 
 You can give the namespace another name, but make sure to change your configuration later on if 
 you choose to do so.
@@ -75,7 +76,9 @@ backend and database instances will be synced automatically (they both consume t
 If you want to connect to an existing database, you will of course have to use the correct password.
 Run 
 
-> kubectl -n dspace create secret generic dspace-backend-secret --from-literal=db__P__password=dspace
+```bash
+kubectl -n dspace create secret generic dspace-backend-secret --from-literal=db__P__password=dspace
+```
 
 to create a secret with the password `dspace`. Feel free to replace `dspace` with any other 
 valid password string.
@@ -84,7 +87,9 @@ Finally, you might need to create a docker pull secret for your private docker r
 If you just want to use the public images from the Docker Hub, this is not necessary, and 
 you can safely skip this step.
 
-> kubectl create secret docker-registry regcred --docker-server=DOCKER_REGISTRY_SERVER --docker-username=DOCKER_USER --docker-password=DOCKER_PASSWORD --docker-email=DOCKER_EMAIL
+```bash
+kubectl create secret docker-registry regcred --docker-server=DOCKER_REGISTRY_SERVER --docker-username=DOCKER_USER --docker-password=DOCKER_PASSWORD --docker-email=DOCKER_EMAIL
+```
 
 Make sure that the name `regcred` (or any other name you might choose) matches your configuration
 during the deployment.
@@ -105,31 +110,41 @@ you may have to make other changes.
 To make sure that any request sent to `http://dspace.example` (or your chosen URL) is 
 forwarded to the minikube ingress, add a line to your `/etc/host file`: 
 
-> dspace.example <MINIKUPE-IP>
-
-So if `minikube ip` returns `<some-ip>`, then add
-
-> dspace.example <some-ip>
-
-and if you use another URL, change the entry accordingly.
+```
+dspace.example <MINIKUPE-IP>
+```
+where `<MINIKUBE-IP>` is the result of `minikube ip`.
+If you use another URL, change the entry accordingly.
 
 If you now open `http://dspace.example` in your browser, you should get an error message from
-an nginx server.
+an nginx server. This indicates that you are indeed forwarded to
+the nginx ingress of your local cluster, but it does not yet know
+where to forward you to. You are now ready to actually deploy the
+application.
 
 
 ### Deploying the Application
 
 After going through the preparatory steps, simply run 
 
-> helm install dspace-local .
+```bash
+helm install dspace-local .
+```
 
 To install the helm chart under the name `dspace-local`.
 Wait some time until all pods have started (you can check the logs of each pod) and 
 then your application should be available under `http://dspace.example`.
 
+> If you use the frontend image provided by DSpace, the Angular application is
+> compiled during container startup. You will have to wait for about 10 minutes
+> until the application is ready. We strongly recommend using your own images
+> with a pre-built frontend for anything other than testing.
+
 As the persistent volumes are not deleted on uninstallation you can run 
 
-> helm uninstall dspace-local
+```bash
+helm uninstall dspace-local
+```
 
 and then install again. Any data you put into the system will still be there.
 
@@ -137,12 +152,16 @@ Lastly, you will need an admin user to try out your new DSpace installation.
 
 Run 
 
-> kubectl -n dspace exec -it deploy/dspace-local-backend -- bash
+```bash
+kubectl -n dspace exec -it deploy/dspace-local-backend -- bash
+```
 
 to open a shell in the backend pod, or more easily use the minikube dashboard.
 Inside the pod, run 
 
-> bin/dspace create-administrator
+```bash
+bin/dspace create-administrator
+```
 
 and follow the instructions.
 
@@ -196,7 +215,7 @@ the backend to enable IIIF support and use the provisioned Cantaloupe instance.
 | `backendAdditionalEnvVariables`        | Key value pairs that are injected into the backend as environment variables                                                                                                                                                                                                   |
 | `frontendImageName`                    | Name of the DSpace frontend image                                                                                                                                                                                                                                             |
 | `frontendImageVersion`                 | Tag of the DSpace frontend image                                                                                                                                                                                                                                              |
-| `backendUIHost`                        | `ui.host` value in your frontend `config.yml`                                                                                                                                                                                                                                 |
+| `frontendUIHost`                       | `ui.host` value in your frontend `config.yml`                                                                                                                                                                                                                                 |
 | `frontendUINamespace`                  | Context path of your frontend, usually `/`                                                                                                                                                                                                                                    |
 | `frontendRunInDevelopmentMode`         | If `true`, the frontend container will run with `npm run serve` and disable the host check. This way, the frontend image provided by DSpace runs in Minikube, for productive environments this should be `false` and the appropriate `command` should be set by the container |
 | `frontendAdditionalEnvVariables`       | Key value pairs that are injected into the frontend as environment variables                                                                                                                                                                                                  |

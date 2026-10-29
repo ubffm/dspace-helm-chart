@@ -136,7 +136,7 @@ cronJobs:
     args: ["/dspace/bin/dspace subscription-send -f W"] 
   - name: "checksum-checker-all"
     schedule: "0 4 * * 0"
-    active: true
+    active: false
     command: ["sh", "-c" ]
     args: ["/dspace/bin/dspace checker -l -p"] 
   - name: "checksum-checker-quick"
