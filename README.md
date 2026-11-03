@@ -1,10 +1,10 @@
-# UB Dspace Helm Template
+# UB DSpace Helm Template
 
-This Helm Chart can be used to deploy the [DSpace](https://dspace.org) digital repository software
-fully functional with all components needed to run it. 
+This Helm Chart can be used to deploy the [DSpace](https://dspace.org) digital repository software,
+fully functional, with all components needed to run it. 
 
 It is designed to work for both local development (e.g. in minikube) and deployment on remote
-Kubernetes clusters (development and productive stages).
+Kubernetes clusters (development and production stages).
 
 
 ## Prerequisites
@@ -13,7 +13,7 @@ To run DSpace in Kubernetes, it is necessary to have appropriate Docker images f
 and the Backend (and possibly the Solr server).
 
 You can use the official DSpace Docker images, but as these are not recommended for use in production,
-we recommend building your own images when moving towards a productive environment.
+we recommend building your own images when moving towards a production environment.
 
 You also need access to need a functioning Kubernetes cluster, either a remote one or,
 for testing and development purposes, a local cluster.
@@ -24,28 +24,33 @@ for testing and development purposes, a local cluster.
 Except for the namespace and secrets (see below), 
 this chart will install everything needed to run DSpace.
 
-It will install a backend, a frontend, a solr server, a database and an Apache httpd proxy.
+It will install a backend, a frontend, a Solr server, a database and an Apache httpd proxy.
 For each component, it will install a Deployment to manage the pods and a Service to expose 
 the container within the cluster network. 
-Additionally, there are Persistent Volumes for the backend, the solr Server and each assetstore 
+Additionally, there are Persistent Volumes for the backend, the Solr server and each assetstore 
 you register in your backend. For each, you can configure the size.
 The proxy also comes with an Ingress that will manage incoming traffic.
 
-The database and solr are optional and can be turned off with a toggle.
-Instead of dynamically deploying instance of postgres and/or solr with this chart, you can 
-use connection strings you might have preconfigured.
+The database and Solr are optional and can be turned off with a toggle.
+Instead of dynamically deploying an instance of PostgreSQL and/or Solr with this chart, you can 
+use connection strings you might have preconfigured to connect to pre-existing installations
+of Solr and/or PostgreSQL.
 
 
-## Running DSpace in Minikube
+## Running DSpace in minikube
 
 The easiest way to test this chart as well as trying out DSpace in Kubernetes is by running it on 
 a local cluster. For this, we use [minikube](https://minikube.sigs.k8s.io), but other clusters
 should work in a similar way. However, we provide information only for minikube.
 
 
-### Setting up Minikube
+### Setting up minikube
 
-To set up minikube, we refer to their documentation, as this is highly dependant of your machine. 
+To set up minikube, we refer to their documentation, as this is highly dependant on your machine. 
+
+```
+minikube start
+```
 
 To later access the app, we need to install the 
 [minikube ingress addon](https://minikube.sigs.k8s.io/docs/handbook/addons/ingress-dns/):
@@ -83,9 +88,11 @@ kubectl -n dspace create secret generic dspace-backend-secret --from-literal=db_
 to create a secret with the password `dspace`. Feel free to replace `dspace` with any other 
 valid password string.
 
+#### Optional
+
+> If you just want to use the public images from the Docker Hub, this is not necessary, and you can safely skip this step.
+
 Finally, you might need to create a docker pull secret for your private docker registry.
-If you just want to use the public images from the Docker Hub, this is not necessary, and 
-you can safely skip this step.
 
 ```bash
 kubectl create secret docker-registry regcred --docker-server=DOCKER_REGISTRY_SERVER --docker-username=DOCKER_USER --docker-password=DOCKER_PASSWORD --docker-email=DOCKER_EMAIL
@@ -104,16 +111,16 @@ You may now choose a URL under which to host your local DSpace installation.
 We use `dspace.example`, but if you wish to use another URL, change the `host` entry
 in your `values.yaml`.
 
-The following explanation works on Linux operating systems, if you use anything else, 
+The following guide works on Linux operating systems. If you use anything else, 
 you may have to make other changes.
 
 To make sure that any request sent to `http://dspace.example` (or your chosen URL) is 
-forwarded to the minikube ingress, add a line to your `/etc/host file`: 
+forwarded to the minikube ingress, add a line to your `/etc/hosts` file: 
 
 ```
-dspace.example <MINIKUPE-IP>
+<MINIKUBE-IPv4> dspace.example
 ```
-where `<MINIKUBE-IP>` is the result of `minikube ip`.
+where `<MINIKUBE-IPv4>` is the result of `minikube ip`.
 If you use another URL, change the entry accordingly.
 
 If you now open `http://dspace.example` in your browser, you should get an error message from
@@ -132,7 +139,7 @@ helm install dspace-local .
 ```
 
 To install the helm chart under the name `dspace-local`.
-Wait some time until all pods have started (you can check the logs of each pod) and 
+Wait until all pods have started (you can check the logs of each pod) and 
 then your application should be available under `http://dspace.example`.
 
 > If you use the frontend image provided by DSpace, the Angular application is
@@ -192,7 +199,7 @@ the backend to enable IIIF support and use the provisioned Cantaloupe instance.
 | `dbPvcStorageClass`                    | Kubernetes Storage Class for a dynamically provided database PVC (ignored if `dbExistingPvcName` is set)                                                                                                                                                                      |
 | `dbPvcSize`                            | Size of the dynamically provided database PVC (ignored if `dbExistingPvcName` is set)                                                                                                                                                                                         |
 | `solrUrl`                              | If you want to use an external Solr server, set this to to the connection string, if `null` a Solr server is provided                                                                                                                                                         |
-| `solrMulticorePrefix`                  | Multicore prefix for the solr connection                                                                                                                                                                                                                                      |
+| `solrMulticorePrefix`                  | Multicore prefix for the Solr connection                                                                                                                                                                                                                                      |
 | `solrImageName`                        | Which image to use for Solr (ignored if `solrUrl` is set)                                                                                                                                                                                                                     |
 | `solrImageVersion`                     | Which image tag to use for Solr (ignored if `solrUrl` is set)                                                                                                                                                                                                                 |
 | `solrDatabaseName`                     | Database name in the deployed Solr container (ignored if `solrUrl` is set)                                                                                                                                                                                                    |
@@ -217,7 +224,7 @@ the backend to enable IIIF support and use the provisioned Cantaloupe instance.
 | `frontendImageVersion`                 | Tag of the DSpace frontend image                                                                                                                                                                                                                                              |
 | `frontendUIHost`                       | `ui.host` value in your frontend `config.yml`                                                                                                                                                                                                                                 |
 | `frontendUINamespace`                  | Context path of your frontend, usually `/`                                                                                                                                                                                                                                    |
-| `frontendRunInDevelopmentMode`         | If `true`, the frontend container will run with `npm run serve` and disable the host check. This way, the frontend image provided by DSpace runs in Minikube, for productive environments this should be `false` and the appropriate `command` should be set by the container |
+| `frontendRunInDevelopmentMode`         | If `true`, the frontend container will run with `npm run serve` and disable the host check. This way, the frontend image provided by DSpace runs in minikube, for production environments this should be `false` and the appropriate `command` should be set by the container |
 | `frontendAdditionalEnvVariables`       | Key value pairs that are injected into the frontend as environment variables                                                                                                                                                                                                  |
 | `proxyImageName`                       | Name of the Apache httpd image                                                                                                                                                                                                                                                |
 | `proxyImageVersion`                    | Tag of the Apache httpd image                                                                                                                                                                                                                                                 |
