@@ -6,6 +6,7 @@ fully functional, with all components needed to run it.
 It is designed to work for both local development (e.g. in minikube) and deployment on remote
 Kubernetes clusters (development and production stages).
 
+This README serves as a general overview. For a more in-depth guide, please refer to the accompanying [blog post] (https://labs.ub.uni-frankfurt.de/post/deployment-of-dspace-on-kubernetes-with-helm-part-1-local-deployment-with-minikube/)
 
 ## Prerequisites
 
